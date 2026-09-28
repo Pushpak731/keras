@@ -325,6 +325,28 @@ class NNOpsDynamicShapeTest(testing.TestCase):
         self.assertEqual(knn.multi_hot(x, 5, 2).shape, (None, 5, 1))
         self.assertSparse(knn.multi_hot(x, 5, sparse=True))
 
+    def test_multi_hot_symbolic_dtype(self):
+        # int32 input -> default floatx output
+        x_int32 = KerasTensor([None, 3, 1], dtype="int32")
+        out_default = knn.multi_hot(x_int32, 5)
+        self.assertEqual(out_default.dtype, backend.floatx())
+
+        # int64 input -> default floatx output
+        x_int64 = KerasTensor([None, 3, 1], dtype="int64")
+        out_int64 = knn.multi_hot(x_int64, 5)
+        self.assertEqual(out_int64.dtype, backend.floatx())
+
+        # Explicit dtype="float64" -> float64 output
+        out_float64 = knn.multi_hot(x_int32, 5, dtype="float64")
+        self.assertEqual(out_float64.dtype, "float64")
+
+        # Symbolic and eager execution producing identical output dtypes
+        eager_x = np.array([[0, 1, 2]], dtype="int32")
+        eager_out = knn.multi_hot(eager_x, 5)
+        self.assertEqual(
+            backend.standardize_dtype(eager_out.dtype), out_default.dtype
+        )
+
     @parameterized.named_parameters(
         named_product(dtype=["float32", "int32", "bool"], sparse=[False, True])
     )
